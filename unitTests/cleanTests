@@ -1,0 +1,12 @@
+#!/bin/sh
+
+for t in test[0-9]*; do
+	echo "Cleaning:" $t
+	cd $t
+	testId=$(pwd | sed "s/.*\///g" | sed "s/_.*//g")
+	rm -f ${testId} log*
+	cd ..
+done
+
+cd ./src
+rm -f *.mod *.o

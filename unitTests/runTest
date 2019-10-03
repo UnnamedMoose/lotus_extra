@@ -1,0 +1,64 @@
+#!/bin/sh
+
+# Extract name of the test from the path.
+testNumber=$(pwd | sed "s/.*\///g" | sed "s/_.*//g" | sed "s/test//g")
+testName=$(pwd | sed "s/.*\///g" | sed "s/test[0-9]*_//g")
+testId=$(pwd | sed "s/.*\///g" | sed "s/_.*//g")
+echo
+echo "============"
+echo "Running unit test" $testNumber":" $testName
+echo
+
+# Set permissions for source files - cross-editing on Windows necessitates this...
+chmod 644 *.f90
+
+# Re-compile Lotus, as necessary.
+make -C $MGLHOME/geom_lib/ libgeom.a > log.make_geom 2>&1
+make -C $MGLHOME/oop/ libfluid.a > log.make_oop 2>&1
+
+# Compile unit tests module, if necessary.
+# TODO ideally, this should be part of the code, which would also fix the relative
+#		include path below.
+# TODO also, in-source builds are a terrible idea.
+${F90} -J"../src" -c "../src/unitTestsModule.f90" -o "../src/unittests.o"
+
+# Compile the test program, setting the correct paths for including, linking and runtime linking.
+# Do not suppress error stream to indicate any issues with the test program.
+# TODO compile multiple f90 files, if needed?
+rm -f $testId
+${F90} -g -Wall -O0 "../src/unittests.o" ${testId}.f90 -o $testId \
+	-I"../src" \
+	-L${MGLHOME}/LotusExtraModules/lib -lLotusExtraModules -I${MGLHOME}/LotusExtraModules/include \
+	-L${MGLHOME}/geom_lib -lgeom -I${MGLHOME}/geom_lib/geom_lib_include -Wl,-rpath='${MGLHOME}/geom_lib' \
+	-L${MGLHOME}/oop -lfluid -I${MGLHOME}/oop -Wl,-rpath='${MGLHOME}/oop' \
+	> log.make_${testId}
+exitCode=$?
+
+# Do not re-run the old version of the test program if compilation has failed.
+if [ $exitCode -ne 0 ]; then
+	echo
+	echo "\e[31mCOMPILATION OF TEST${testNumber} FAILED!"
+	echo
+	exit
+fi
+
+# Run the test.
+./${testId}
+exitCode=$?
+
+# Print a message indicating if the test has failed or passed.
+echo
+if [ $exitCode -ne 0 ]; then
+	echo "\e[31mTEST${testNumber} FAILED!\e[0m"
+else
+	echo "\e[92mTEST${testNumber} PASSED!\e[0m"
+fi
+echo
+
+# Run the test using valgrind to check for memory errors.
+valgrind --leak-check=full --error-exitcode=1 --log-file="log.valgrind_${testId}" ./${testId} > /dev/null 2>&1
+exitCode=$?
+if [ $exitCode -ne 0 ]; then
+	echo "\e[31mTEST${testNumber} FAILED MEMORY LEAK CHECKS!\e[0m"
+fi
+echo
