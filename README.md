@@ -36,4 +36,8 @@ install directory. Something like:
 ```
 	~/lib/lotus_extra
 ```
-seems like a good option.
+seems like a good option. This way differently configured versions
+of the code may be kept separately without the need to recompile
+every time, e.g. when working on a Lotus executable that needs to
+be run with/without MPI or in DEBUG/RELEASE modes interchangably
+during development.
