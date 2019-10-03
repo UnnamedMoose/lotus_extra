@@ -15,7 +15,8 @@
 !<
 !***********************************************************************
 module controlFileInterface
-    use, intrinsic :: ieee_arithmetic, only: IEEE_Value, IEEE_QUIET_NAN
+	! TODO update to this when using newer gfortran
+    !use, intrinsic :: ieee_arithmetic, only: IEEE_Value, IEEE_QUIET_NAN
 
     implicit none
 
@@ -122,7 +123,8 @@ real(8) function getFloat_(self, keyword, suppressKeyNotFoundWarnig) result(retV
         print "(3a)", 'WARNING in controlFileInterface::getFloat: no value found for requested keyword "', trim(keyword), '"'
     endif
     if (.not. keywordFound) then
-        retValue = IEEE_VALUE(retValue, IEEE_QUIET_NAN)
+        retValue = -1.0
+        ! TODO update to this when using newer gfortran IEEE_VALUE(retValue, IEEE_QUIET_NAN)
     endif
 
 end function getFloat_
@@ -209,7 +211,8 @@ function getVector_(self, keyword, suppressKeyNotFoundWarnig) result(retValue)
     endif
     if (.not. keywordFound) then
         do pos=1, 3
-            retValue(pos) = IEEE_VALUE(retValue(pos), IEEE_QUIET_NAN)
+            retValue(pos) = 0.0
+            ! TODO update to this when using newer gfortran IEEE_VALUE(retValue(pos), IEEE_QUIET_NAN)
         enddo
     endif
 

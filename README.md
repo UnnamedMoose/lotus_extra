@@ -2,16 +2,6 @@
 
 Additional functionality aimed to extend Lotus
 
-Unlike the rest of the code, this onli works with gfortran-5 or newer.
-To set everything correctly,
-```
-	sudo apt-get install gfortran-5
-	echo "alias gfortran='gfortran'" >> ~/.bashrc
-	echo "export FC=gfortran-5" >> ~/.bashrc
-	source ~/.bashrc
-```
-And rebuild lotus_geom_lib and lotus_oop
-
 To configure and build this project:
 ```
 	mkdir build

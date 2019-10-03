@@ -28,9 +28,9 @@ ${F90} -J"../src" -c "../src/unitTestsModule.f90" -o "../src/unittests.o"
 rm -f $testId
 ${F90} -g -Wall -O0 "../src/unittests.o" ${testId}.f90 -o $testId \
 	-I"../src" \
-	-L${MGLHOME}/LotusExtraModules/lib -lLotusExtraModules -I${MGLHOME}/LotusExtraModules/include \
+	-L${MGLHOME}/lotus_extra/lib -lLotusExtraModules -I${MGLHOME}/lotus_extra/include \
 	-L${MGLHOME}/geom_lib -lgeom -I${MGLHOME}/geom_lib/geom_lib_include -Wl,-rpath='${MGLHOME}/geom_lib' \
-	-L${MGLHOME}/oop -lfluid -I${MGLHOME}/oop -Wl,-rpath='${MGLHOME}/oop' \
+	-L${MGLHOME}/oop -lfluid -I${MGLHOME}/oop -Wl,-rpath='${MGLHOME}/lotus_oop' \
 	> log.make_${testId}
 exitCode=$?
 
