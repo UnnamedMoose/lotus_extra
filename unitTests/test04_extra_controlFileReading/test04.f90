@@ -41,7 +41,8 @@ program test04
     endif
     ! Value not in the file.
     float = inputFile%getFloat("floatThatIsNotThere", suppressKeyNotFoundWarnig=.true.)
-    call assert(isnan(float), name="Float not found", value=pass)
+    !call assert(isnan(float), name="Float not found", value=pass)
+    call assert(abs(float+1)<1e-6, name="Float not found", value=pass)
     if (.not. pass) then
         print "(3a,F8.4)", "Expected ", "NaN", " but got ", float
     endif
@@ -54,9 +55,11 @@ program test04
     endif
     ! Value not in the file.
     vector = inputFile%getVector("vecThatIsNotThere", suppressKeyNotFoundWarnig=.true.)
-    call assert((isnan(vector(1)) .and. isnan(vector(2)) .and. isnan(vector(3))), name="Vector not found", value=pass)
+    !call assert((isnan(vector(1)) .and. isnan(vector(2)) .and. isnan(vector(3))), name="Vector not found", value=pass)
+    call assert(((abs(vector(1))<1e-6) .and. (abs(vector(2))<1e-6) .and. (abs(vector(3))<1e-6)), &
+    	name="Vector not found", value=pass)
     if (.not. pass) then
-        print "(3a,3F8.4)", "Expected NaN but got ", vector
+        print "(3a,3F8.4)", "Expected 0,0,0 but got ", vector
     endif
 
     ! ---
