@@ -29,10 +29,10 @@ subroutine readTabulatedData(filename, data)
     character(len=*), intent(in) :: filename
     character(len=100) :: buffer
     integer :: positionInBuffer
-    integer, parameter :: fileUnit = 13
-    integer :: ios = 0
-    integer :: line = 0, arrayIndex = 0
-    logical :: arrayLengthAllocated = .false.
+    integer :: fileUnit
+    integer :: ios=0
+    integer :: line=0, arrayIndex=0
+    logical :: arrayLengthAllocated=.false.
 
     ! data variables
     integer :: sizeI, sizeJ
@@ -42,7 +42,7 @@ subroutine readTabulatedData(filename, data)
     integer :: errorCode
 
     ! open the input stream
-    open(fileUnit, file=filename)
+    open(newunit=fileUnit, file=filename)
 
     ! keep reading until the EOF
     do while (ios == 0)
