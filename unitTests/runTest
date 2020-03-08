@@ -56,7 +56,7 @@ fi
 echo
 
 # Run the test using valgrind to check for memory errors.
-valgrind --leak-check=full --error-exitcode=1 --log-file="log.valgrind_${testId}" ./${testId} > /dev/null 2>&1
+valgrind --track-origins=yes --leak-check=full --error-exitcode=1 --log-file="log.valgrind_${testId}" ./${testId} > /dev/null 2>&1
 exitCode=$?
 if [ $exitCode -ne 0 ]; then
 	echo "\e[31mTEST${testNumber} FAILED MEMORY LEAK CHECKS!\e[0m"
