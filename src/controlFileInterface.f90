@@ -91,7 +91,7 @@ end function controlFileConstructor_
 !! @param suppressKeyNotFoundWarnig - do not show a warning, even if the required key
 !!      has not been found.
 !<
-real(8) function getFloat_(self, keyword, suppressKeyNotFoundWarnig) result(retValue)
+real function getFloat_(self, keyword, suppressKeyNotFoundWarnig) result(retValue)
     implicit none
     class(controlFileClass), intent(in) :: self
     character(len=*), intent(in) :: keyword
@@ -181,7 +181,7 @@ end function getInt_
 !<
 function getVector_(self, keyword, suppressKeyNotFoundWarnig) result(retValue)
     implicit none
-    real(8), dimension(3) :: retValue
+    real, dimension(3) :: retValue
     class(controlFileClass), intent(in) :: self
     character(len=*), intent(in) :: keyword
     logical, intent(in), optional :: suppressKeyNotFoundWarnig
