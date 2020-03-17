@@ -15,7 +15,7 @@ module test05module
         ! --- member function declarations ---
         contains
             ! Calculation of the derivative vector
-            procedure :: ddtState => msdDerivs_
+            procedure :: derivs => msdDerivs_
 
             ! callbacks
             procedure :: callbackStep => msdCallbackStep_
@@ -69,20 +69,20 @@ function msdConstructor_(noDegreesOfFreedom) result(newMsdOde)
 end function msdConstructor_
 
 !>
-!! Computes derivatives of the state vector of a 2D mass-spring-damper system
+!! Computes accelerations of the state vector of a 2D mass-spring-damper system
 !<
 !=====================================================================
-subroutine msdDerivs_(self, ddtStateVec, tExt, yExt, dydtExt)
+subroutine msdDerivs_(self, d2ydtNew, tExt, yExt, dydtExt)
 !=====================================================================
     implicit none
 
     class(msdClass), intent(inout) :: self
-    real, dimension(self%nDof*2), intent(out) :: ddtStateVec
+    real, dimension(self%nDof), intent(out) :: d2ydtNew
     real, intent(in), optional :: tExt
     real, dimension(self%nDof), intent(in), optional :: yExt, dydtExt
 
     real :: t
-    real, dimension(self%nDof) :: y, dydt, d2ydt2
+    real, dimension(self%nDof) :: y, dydt
 
     real, dimension(:,:), allocatable :: mInv
     real, dimension(:), allocatable :: effK, effC, effF
@@ -127,10 +127,7 @@ subroutine msdDerivs_(self, ddtStateVec, tExt, yExt, dydtExt)
     effF = matmul(mInv, effF)
     effK = matmul(matmul(self%k, mInv), y)
     effC = matmul(matmul(self%c, mInv), dydt)
-    d2ydt2 = effF - effK - effC
-
-    ! Return the updated derivative of the state vector.
-    ddtStateVec = [dydt, d2ydt2]
+    d2ydtNew = effF - effK - effC
 
     ! Clean up.
     deallocate(mInv)
@@ -178,15 +175,36 @@ program test05
 
     integer, parameter :: nDof=2
     type(msdClass) :: msdSystem
-    real, dimension(nDof*2) :: ddtStateVec
-
-    ! real :: rmsError, interpResult
-    ! logical :: pass
-
+    real, dimension(nDof*2) :: vecResult, vecAnswer
+    real :: rmsError
+    logical :: pass
 
     ! ---
+    ! Create a mass-spring-damper system object.
     msdSystem = msdClass(nDof)
-    call msdSystem%ddtState(ddtStateVec)
+
+    ! - Test 0 -
+    ! Retrieve vectorised initial state.
+    vecAnswer = (/0.2, 0.2, 0.0, 0.0/)
+    vecResult = getState(msdSystem)
+    rmsError = sqrt(sum((vecAnswer - vecResult)**2.0))
+    call assert(rmsError < 1e-6, name="initial state", value=pass)
+    if (.not. pass) then
+        print "(a,10f8.3)", "Got error", rmsError
+        print "(a,10f8.3)", "Got values", vecResult
+    endif
+
+    ! - Test 1 -
+    ! Compute the initial state - acceleration should be equal to k*x0/m.
+    vecAnswer = (/0.0, 0.0, -5.0, -9.0/)
+    vecResult = 0.0
+    call msdSystem%derivs(vecResult(3:4))
+    rmsError = sqrt(sum((vecAnswer - vecResult)**2.0))
+    call assert(rmsError < 1e-6, name="initial accelerations", value=pass)
+    if (.not. pass) then
+        print "(a,10f8.3)", "Got error", rmsError
+        print "(a,10f8.3)", "Got values", vecResult
+    endif
 
     ! ---
     ! ! Test the interpolation with mirrored points for periodic behaviour.

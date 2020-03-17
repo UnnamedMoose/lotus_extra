@@ -8,7 +8,7 @@
 !! CHANGELOG
 !! v 1.0 - original implementation
 !!
-!! TODO AL: could add some sort of test logging mechanism.  
+!! TODO AL: could add some sort of test logging mechanism.
 !<
 !***********************************************************************
 
@@ -18,7 +18,7 @@ module unitTests
 ! - Module-level variables. -
 private
 	! Statistics of how well (or badly) the test program is doing.
-	integer :: nAssertions=0, nPassedAssertions
+	integer :: nAssertions=0, nPassedAssertions=0
 
 ! - Public function declarations. -
 public assert, finishUnitTest

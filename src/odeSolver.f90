@@ -1,4 +1,4 @@
-!***********************************************************************
+!*******************************************************************************
 !>
 !! Module for solving ordinary differential equations (ODEs).
 !!
@@ -10,7 +10,7 @@
 !!
 !! TODO write this thing
 !<
-!***********************************************************************
+!*******************************************************************************
 module odeSolver
 
     implicit none
@@ -27,21 +27,13 @@ module odeSolver
         ! State vector and its time derivatives.
     	real, dimension(:), allocatable :: y, dydt, d2ydt2
 
-    	! --- Data storage. ---
-    	real, dimension(:,:), allocatable :: timeHistory
-
     	! --- Member function declarations. ---
     	contains
-            ! Return vectorised state vector (dydt, y), to be used directly in the time
-            ! integration routines.
-            ! procedure :: state => getState_
-
             ! Compute the derivatives of the system (e.g. force/mass for linear
             ! motion) and concatenate together with velocities in order to get
             ! a vector representation of the dynamics.
             ! NOTE AL: main function that needs to be re-defined in the derived classes.
-            ! procedure :: ddtState => getDdtState_
-            procedure(derivs_ode), deferred :: ddtState
+            procedure(derivs_ode), deferred :: derivs
 
     		! Callbacks to be executed at the end of each time step and at the end
     		! of time integration.
@@ -65,10 +57,10 @@ module odeSolver
         !! @param dydtExt - external value of state vector time derivatives, use internal
         !!      values otherwise.
         !<
-    	subroutine derivs_ode(self, ddtStateVec, tExt, yExt, dydtExt)
+    	subroutine derivs_ode(self, d2ydtNew, tExt, yExt, dydtExt)
     		import odeClass
     		class(odeClass), intent(inout) :: self
-    		real, dimension(self%nDof*2), intent(out) :: ddtStateVec
+    		real, dimension(self%nDof), intent(out) :: d2ydtNew
             real, intent(in), optional :: tExt
     		real, dimension(self%nDof), intent(in), optional :: yExt, dydtExt
     	end subroutine
@@ -106,8 +98,6 @@ subroutine odeBaseClassConstructor(newOde, nDof, t0, y0, dydt0, d2ydt20)
     allocate(newOde%y(newOde%nDof))
     allocate(newOde%dydt(newOde%nDof))
     allocate(newOde%d2ydt2(newOde%nDof))
-    ! allocate data storage, keep zero entries to begin with
-    allocate(newOde%timeHistory(0,newOde%nDof*3+1))
 
     ! Assume zero inital condition by default.
     if (present(t0)) then
@@ -133,69 +123,57 @@ subroutine odeBaseClassConstructor(newOde, nDof, t0, y0, dydt0, d2ydt20)
 end subroutine odeBaseClassConstructor
 
 !>
-!! Concatenate the state of the system into vectorised form.
-!! TODO make this one work to make the higher level code neater.
+!! Concatenate the state of the system into vectorised form (y, dydt).
 !<
-! subroutine getState_(self, stateVec)
-!     implicit none
-!     class(odeClass), intent(in) :: self
-!     real, dimension(:), allocatable, intent(out) :: stateVec
-!     allocate(stateVec(self%nDof*2))
-!     stateVec(1:self%nDof) = self%dydt
-!     stateVec(self%nDof+1:self%nDof*2) = self%y
-!     print *, "I'm a base type, yo!"
-! end subroutine getState_
+function getState(ode) result(stateVec)
+    implicit none
+    class(odeClass), intent(in) :: ode
+    real, dimension(ode%nDof*2) :: stateVec
+    stateVec(1:ode%nDof) = ode%y
+    stateVec(ode%nDof+1:ode%nDof*2) = ode%dydt
+end function getState
 
 !>
-!! Compute the accelerations and concatenate with velocities in order to get the
-!! time derivative of the state of the system in vectorised form. Allows the
-!! state variables to be externally overriden, which allows intermediate time
-!! steps to be used in time integration (e.g. Runge-Kutta method).
-!!
-!! @param ddtStateVec - return value of size (nDof*2) = [d2ydt2, dydt]
-!! @param tExt - external value of the independent variable, use class-stored
-!!      value otherwise.
-!! @param yExt - external value of state, use internal values otherwise.
-!! @param dydtExt - external value of state vector time derivatives, use internal
-!!      values otherwise.
+!! Concatenate the d/dt of the state of the system into vectorised form (dydt, d2ydt2).
 !<
-! subroutine getDdtState_(self, ddtStateVec, tExt, yExt, dydtExt)
-!     implicit none
-!     class(odeClass), intent(in) :: self
-!     real, dimension(:), allocatable, intent(out) :: ddtStateVec
-!     real, intent(in), optional :: tExt
-!     real, dimension(self%nDof), intent(in), optional :: yExt, dydtExt
-!
-!     real :: t
-!     real, dimension(self%nDof) :: y, dydt, d2ydt2
-!
-!     ! Parse state overrides.
-!     if (present(tExt)) then
-!         t = tExt
-!     else
-!         y = self%time
-!     endif
-!     if (present(yExt)) then
-!         y = yExt
-!     else
-!         y = self%y
-!     endif
-!     if (present(dydtExt)) then
-!         dydt = dydtExt
-!     else
-!         dydt = self%dydt
-!     endif
-!
-!     ! Compute time derivatives.
-!     ! NOTE: overwrite here in derived classes in order to implement specific functionality.
-!     d2ydt2 = 0.0d0
-!     ! NOTE: overwrite here in derived classes in order to implement specific functionality.
-!
-!     ! Allocate storage for the time derivative vector and concatenate.
-!     allocate(ddtStateVec(self%nDof*2))
-!     ddtStateVec(1:self%nDof) = d2ydt2
-!     ddtStateVec(self%nDof+1:self%nDof*2) = dydt
-!
-! end subroutine getDdtState_
+function getDdtState(ode) result(ddtStateVec)
+    implicit none
+    class(odeClass), intent(in) :: ode
+    real, dimension(ode%nDof*2) :: ddtStateVec
+    ddtStateVec(1:ode%nDof) = ode%dydt
+    ddtStateVec(ode%nDof+1:ode%nDof*2) = ode%d2ydt2
+end function getDdtState
+
+!>
+!! Given the new state (pos, vel), update the fields inside the ode object.
+!<
+subroutine updateState(ode, newStateVec)
+    implicit none
+    class(odeClass), intent(inout) :: ode
+    real, dimension(ode%nDof*2), intent(in) :: newStateVec
+    ode%y = newStateVec(1:ode%nDof)
+    ode%dydt = newStateVec(ode%nDof+1:ode%nDof*2)
+end subroutine updateState
+
+! ===
+! Time integration routines.
+! ===
+
+!>
+!! Single step of basic 1st order Euler time integration.
+!<
+subroutine odeIntStepEuler(ode, dt)
+    implicit none
+    class(odeClass), intent(inout) :: ode
+    real, intent(in) :: dt
+
+	real, dimension(ode%nDof*2) :: stateNew
+
+    ! Make an Euler step based on the current accelerations.
+    stateNew = getState(ode) + getDdtState(ode)*dt
+    ! Update the state.
+    call updateState(ode, stateNew)
+
+end subroutine odeIntStepEuler
 
 end module odeSolver
