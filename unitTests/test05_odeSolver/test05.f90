@@ -63,7 +63,7 @@ function msdConstructor_(noDegreesOfFreedom) result(newMsdOde)
     newMsdOde%c(1,:) = (/0.2, 0.0/)
     newMsdOde%c(2,:) = (/0.0, 0.3/)
 
-    newMsdOde%F = (/1.0, 1.0/)
+    newMsdOde%F = (/0.0, 0.0/) ! Disable force. To enable with sensible values, set to 1.0.
     newMsdOde%omega = (/2.*pi*1., 2.*pi*2./)
 
 end function msdConstructor_
@@ -178,6 +178,12 @@ program test05
     real, dimension(nDof*2) :: vecResult, vecAnswer
     real :: rmsError
     logical :: pass
+    integer :: outFileUnit, i, j
+    ! For test 2
+    real :: tEnd=10.0, dt
+    real, dimension(nDof) :: omegaN, omegaD, zeta, xTilde, A, B
+    integer, parameter :: nSteps=2000
+    real, dimension(nSteps, 1+nDof*3+nDof) :: timeHistory ! time, solution pos, vel, acc, analytical
 
     ! ---
     ! Create a mass-spring-damper system object.
@@ -205,6 +211,46 @@ program test05
         print "(a,10f8.3)", "Got error", rmsError
         print "(a,10f8.3)", "Got values", vecResult
     endif
+
+    ! - Test 2 -
+    ! Integrate the ode in time and compare with analytical solution.
+    open(file="test05_Euler.dat", newunit=outFileUnit)
+    write(outFileUnit, "(2a)") 'VARIABLES="time", "y0", "y1", "dydt0", "dydt1", ', &
+                              '"d2ydt20", "d2ydt21", "y0An", "y1An"'
+    dt = tEnd / nSteps
+    ! Set the inital accelerations.
+    call msdSystem%derivs(msdSystem%d2ydt2)
+    ! Prepare common terms for the analytical solution.
+    do i=1, nDof
+        omegaN(i) = sqrt(msdSystem%k(i,i) / msdSystem%m(i,i))
+        zeta(i) = msdSystem%c(i,i) / (2.0 * msdSystem%m(i,i) * omegaN(i))
+        omegaD(i) = omegaN(i) * sqrt(1.0 - zeta(i)**2.0)
+        xTilde(i) = (msdSystem%F(i) * (-msdSystem%m(i,i)*msdSystem%omega(i)**2.0 + msdSystem%k(i,i)) &
+            / ((-msdSystem%m(i,i)*msdSystem%omega(i)**2.0 + msdSystem%k(i,i))**2.0 + (msdSystem%omega(i)*msdSystem%c(i,i))**2.0))
+        A(i) = (msdSystem%dydt(i) + zeta(i)*omegaN(i)*msdSystem%y(i) - xTilde(i)*msdSystem%omega(i)) / omegaD(i)
+        B(i) = msdSystem%y(i)
+    enddo
+
+    ! Loop.
+    do i=1, nSteps
+        ! Put past values in the storage container.
+        timeHistory(i,1) = msdSystem%time
+        timeHistory(i,2:nDof+1) = msdSystem%y
+        timeHistory(i,nDof+2:nDof*2+1) = msdSystem%dydt
+        timeHistory(i,nDof*2+2:nDof*3+1) = msdSystem%d2ydt2
+        ! Compute the analytical solution.
+        do j=1, nDof
+            timeHistory(i,nDof*3+1+j) = exp(-zeta(j)*omegaN(j)*msdSystem%time) &
+                * (A(j)*sin(omegaD(j)*msdSystem%time) + B(j)*cos(omegaD(j)*msdSystem%time)) &
+                + xTilde(j)*sin(msdSystem%omega(j)*msdSystem%time)
+        enddo
+        ! Write to file.
+        write(outFileUnit, "(10f8.4)") timeHistory(i,:)
+        ! Make a step.
+        call odeIntStepEuler(msdSystem, dt)
+        ! Update derivatives at the new time.
+        call msdSystem%derivs(msdSystem%d2ydt2)
+    enddo
 
     ! ---
     ! ! Test the interpolation with mirrored points for periodic behaviour.

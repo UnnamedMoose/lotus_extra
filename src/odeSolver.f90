@@ -170,8 +170,11 @@ subroutine odeIntStepEuler(ode, dt)
 	real, dimension(ode%nDof*2) :: stateNew
 
     ! Make an Euler step based on the current accelerations.
+    ode%time = ode%time + dt
     stateNew = getState(ode) + getDdtState(ode)*dt
-    ! Update the state.
+
+    ! Update the state. New derivatives have to be computed externally to this
+    ! routine. This allows flow forces at the new time level to included.
     call updateState(ode, stateNew)
 
 end subroutine odeIntStepEuler
