@@ -174,6 +174,15 @@ pure subroutine interpSpline(yi, xi, x, y, dydx2)
     integer :: i
     real*8 :: a, b, h
 
+    ! Return end values if requested point exceeds the scope of input data.
+    if (xi < x(1)) then
+        yi = y(1)
+        return
+    elseif (xi > x(size(x))) then
+        yi = y(size(y))
+        return
+    endif
+
     ! find indices of the interpolation points
     ! FIXME bi-section would be a more efficient approach
     do i = 1, size(x)-1
